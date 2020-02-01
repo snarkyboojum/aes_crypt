@@ -1,0 +1,16 @@
+[package]
+name = "aes-crypt"
+version = "0.1.0"
+authors = ["Adrian White <snarkyboojum@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+[dev-dependencies]
+criterion = "0.3.1"
+
+[[bench]]
+name = "cipher_benchmark"
+harness = false
