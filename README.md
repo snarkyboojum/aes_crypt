@@ -1,6 +1,6 @@
 ## Overview
 
-aes-crypt is a naive AES implementation in Rust. The primary goal is to learn how AES works, not to build a high quality implementation.
+aes_crypt is a naive AES implementation in Rust. The primary goal is to learn how AES works, not to build a high quality implementation.
 
 The initial implemementation will be in pure software in Rust. This might eventually be extended to play around with supporting AES CPU hardware instructions too.
 
