@@ -386,6 +386,14 @@ fn as_u8_array(field: u32, array: &mut [u8; 4]) {
     array[0] = ((field >> 24) & 0xff) as u8;
 }
 
+fn inverse_cipher() {}
+
+fn inv_shift_rows() {}
+
+fn inv_sub_bytes() {}
+
+fn inv_mix_columns() {}
+
 #[cfg(test)]
 mod tests {
     use super::*;
