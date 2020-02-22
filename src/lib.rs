@@ -114,9 +114,6 @@ fn shift_bytes(bytes: &mut [u8; 4]) {
     bytes[3] = a;
 }
 
-// shift each row in state left by n positions depending on row number
-// i.e. shift 0th row by 0, 1st row by 1, 2nd row by 2 and 3rd row by 3
-
 // get a specific column from a 4x4 matrix, indexed by column_index
 fn get_column(column_index: usize, matrix: &[u8]) -> [u8; 4] {
     //println!("Getting column: {}", column_index);
@@ -259,8 +256,7 @@ pub fn cipher(input: &[u8], key_schedule: &[u32]) -> [u8; 16] {
 
     //println!("Output");
     //print_state(&state);
-    state = transpose_state(&state);
-    state
+    transpose_state(&state)
 }
 
 pub fn inverse_cipher(input: &[u8], key_schedule: &[u32]) -> [u8; 16] {
@@ -270,7 +266,6 @@ pub fn inverse_cipher(input: &[u8], key_schedule: &[u32]) -> [u8; 16] {
     assert_eq!(state.len(), 16);
     assert_eq!(key_schedule.len(), 44); // Nr + 1
 
-    print_state(&state);
     add_round_key(
         &mut state,
         &key_schedule[Rounds::Ten as usize * 4..(Rounds::Ten as usize + 1) * 4],
@@ -286,8 +281,7 @@ pub fn inverse_cipher(input: &[u8], key_schedule: &[u32]) -> [u8; 16] {
     sub_bytes(&mut state, &INV_S_BOX);
     add_round_key(&mut state, &key_schedule[0..4]);
 
-    state = transpose_state(&state);
-    state
+    transpose_state(&state)
 }
 
 enum ShiftDirection {
@@ -295,6 +289,8 @@ enum ShiftDirection {
     Right,
 }
 
+// shift each row in state in the ShiftDirection by n positions depending on row number
+// i.e. shift 0th row by 0, 1st row by 1, 2nd row by 2 and 3rd row by 3
 fn shift_rows(state: &mut [u8; 16], dir: ShiftDirection) -> [u8; 16] {
     let mut shifted_state = [0u8; 16];
 

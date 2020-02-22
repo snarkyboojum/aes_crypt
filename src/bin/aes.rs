@@ -30,13 +30,25 @@ fn main() {
 
         // TODO: pad or do something else for partial blocks?
         if block.len() < 16 {
-            println!("Partial block.. not implemented yet :)");
+            println!("Processing partial block.. not implemented yet :)");
             break;
         } else {
             // run the cipher block-wise
-            let output = cipher(block, &key_schedule);
-            println!("Input: {:#02x?}", block);
-            println!("Output: {:#02x?}", output);
+            println!(
+                "Unencrypted data block: {}",
+                std::str::from_utf8(&block).unwrap()
+            );
+            let cipher_text = cipher(block, &key_schedule);
+            println!("Input to cipher: {:#02x?}", block);
+            println!("Cipher text: {:#02x?}", cipher_text);
+
+            // run inverse cipher block-wise
+            let output = inverse_cipher(&cipher_text, &key_schedule);
+            println!("Decrypted cipher text: {:#02x?}", output);
+            println!(
+                "Decrypted data block: {}",
+                std::str::from_utf8(&output).unwrap()
+            );
         }
     }
 }
