@@ -481,9 +481,6 @@ mod tests {
         );
     }
 
-    //#[test]
-    //fn test_sub_word() {}
-
     // from FIPS standard, see p27 of https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197.pdf
     #[test]
     fn test_expand_key() {
