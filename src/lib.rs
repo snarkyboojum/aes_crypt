@@ -94,7 +94,8 @@ fn sub_bytes(state: &mut [u8; 16], s_box: &[u8; 256]) {
 
         // we use the high_nibble as a "row" index into S_BOX and the low_nibble as a "column" index
         let new_byte_index = (high_nibble as usize) * 16 + low_nibble as usize; // S_BOX is index from 0
-                                                                                //println!("Index into S_BOX: {}", new_byte_index);
+
+        //println!("Index into S_BOX: {}", new_byte_index);
         let new_byte: u8 = s_box[new_byte_index];
         //println!("Subbed byte is: {:#02x}", new_byte);
 
@@ -263,17 +264,12 @@ pub fn cipher(input: &[u8], key_schedule: &[u32]) -> [u8; 16] {
 }
 
 pub fn inverse_cipher(input: &[u8], key_schedule: &[u32]) -> [u8; 16] {
-    println!("Length of input: {}", input.len());
-
     let mut state = transpose_state(input);
-    println!("Length of output: {}", state.len());
-    println!("Length of key_schedule: {}", key_schedule.len());
 
     assert_eq!(input.len(), 16);
     assert_eq!(state.len(), 16);
     assert_eq!(key_schedule.len(), 44); // Nr + 1
 
-    println!("Input");
     print_state(&state);
     add_round_key(
         &mut state,
@@ -281,37 +277,15 @@ pub fn inverse_cipher(input: &[u8], key_schedule: &[u32]) -> [u8; 16] {
     );
 
     for round in (1..Rounds::Ten as usize).rev() {
-        println!("Start of round: {}", round);
-        print_state(&state);
-
         state = shift_rows(&mut state, ShiftDirection::Right);
-        println!("After shift_rows()");
-        print_state(&state);
-
         sub_bytes(&mut state, &INV_S_BOX);
-        println!("After sub_bytes()");
-        print_state(&state);
-
-        println!("Range for key schedule: {}, {}", round * 4, (round + 1) * 4);
         add_round_key(&mut state, &key_schedule[round * 4..(round + 1) * 4]);
-
         state = mix_columns(&mut state, &INV_MIX_COLS_MATRIX);
-        println!("After mix_columns()");
-        print_state(&state);
     }
-    println!("Last round (without mix_columns)");
     state = shift_rows(&mut state, ShiftDirection::Right);
-    println!("After shift_rows()");
-    print_state(&state);
-
     sub_bytes(&mut state, &INV_S_BOX);
-    println!("After sub_bytes()");
-    print_state(&state);
-
     add_round_key(&mut state, &key_schedule[0..4]);
 
-    println!("Output");
-    print_state(&state);
     state = transpose_state(&state);
     state
 }
