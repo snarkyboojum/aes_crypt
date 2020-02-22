@@ -1,5 +1,5 @@
 extern crate aes_crypt;
-use aes_crypt::{cipher, expand_key, KeyLength, Rounds, BLOCK_SIZE};
+use aes_crypt::{cipher, expand_key, inverse_cipher, KeyLength, Rounds, BLOCK_SIZE};
 use std::fs;
 
 fn main() {

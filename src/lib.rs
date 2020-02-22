@@ -37,6 +37,26 @@ const S_BOX: [u8; 256] = [
     0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16,
 ];
 
+// see p22 of https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197.pdf
+const INV_S_BOX: [u8; 256] = [
+    0x52, 0x09, 0x6a, 0xd5, 0x30, 0x36, 0xa5, 0x38, 0xbf, 0x40, 0xa3, 0x9e, 0x81, 0xf3, 0xd7, 0xfb,
+    0x7c, 0xe3, 0x39, 0x82, 0x9b, 0x2f, 0xff, 0x87, 0x34, 0x8e, 0x43, 0x44, 0xc4, 0xde, 0xe9, 0xcb,
+    0x54, 0x7b, 0x94, 0x32, 0xa6, 0xc2, 0x23, 0x3d, 0xee, 0x4c, 0x95, 0x0b, 0x42, 0xfa, 0xc3, 0x4e,
+    0x08, 0x2e, 0xa1, 0x66, 0x28, 0xd9, 0x24, 0xb2, 0x76, 0x5b, 0xa2, 0x49, 0x6d, 0x8b, 0xd1, 0x25,
+    0x72, 0xf8, 0xf6, 0x64, 0x86, 0x68, 0x98, 0x16, 0xd4, 0xa4, 0x5c, 0xcc, 0x5d, 0x65, 0xb6, 0x92,
+    0x6c, 0x70, 0x48, 0x50, 0xfd, 0xed, 0xb9, 0xda, 0x5e, 0x15, 0x46, 0x57, 0xa7, 0x8d, 0x9d, 0x84,
+    0x90, 0xd8, 0xab, 0x00, 0x8c, 0xbc, 0xd3, 0x0a, 0xf7, 0xe4, 0x58, 0x05, 0xb8, 0xb3, 0x45, 0x06,
+    0xd0, 0x2c, 0x1e, 0x8f, 0xca, 0x3f, 0x0f, 0x02, 0xc1, 0xaf, 0xbd, 0x03, 0x01, 0x13, 0x8a, 0x6b,
+    0x3a, 0x91, 0x11, 0x41, 0x4f, 0x67, 0xdc, 0xea, 0x97, 0xf2, 0xcf, 0xce, 0xf0, 0xb4, 0xe6, 0x73,
+    0x96, 0xac, 0x74, 0x22, 0xe7, 0xad, 0x35, 0x85, 0xe2, 0xf9, 0x37, 0xe8, 0x1c, 0x75, 0xdf, 0x6e,
+    0x47, 0xf1, 0x1a, 0x71, 0x1d, 0x29, 0xc5, 0x89, 0x6f, 0xb7, 0x62, 0x0e, 0xaa, 0x18, 0xbe, 0x1b,
+    0xfc, 0x56, 0x3e, 0x4b, 0xc6, 0xd2, 0x79, 0x20, 0x9a, 0xdb, 0xc0, 0xfe, 0x78, 0xcd, 0x5a, 0xf4,
+    0x1f, 0xdd, 0xa8, 0x33, 0x88, 0x07, 0xc7, 0x31, 0xb1, 0x12, 0x10, 0x59, 0x27, 0x80, 0xec, 0x5f,
+    0x60, 0x51, 0x7f, 0xa9, 0x19, 0xb5, 0x4a, 0x0d, 0x2d, 0xe5, 0x7a, 0x9f, 0x93, 0xc9, 0x9c, 0xef,
+    0xa0, 0xe0, 0x3b, 0x4d, 0xae, 0x2a, 0xf5, 0xb0, 0xc8, 0xeb, 0xbb, 0x3c, 0x83, 0x53, 0x99, 0x61,
+    0x17, 0x2b, 0x04, 0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0c, 0x7d,
+];
+
 // "mix in" key material with state
 // xor each column of state with 128 bits of the key material
 fn add_round_key(state: &mut [u8; 16], key: &[u32]) {
@@ -66,7 +86,7 @@ fn add_round_key(state: &mut [u8; 16], key: &[u32]) {
 // the high nibble is used as a row index
 // the low nibble is ujsed as the column index
 // e.g. for 0x73, we look at row 7 and column 3 to look up the substitute byte
-fn sub_bytes(state: &mut [u8; 16]) {
+fn sub_bytes(state: &mut [u8; 16], s_box: &[u8; 256]) {
     // get the low and high nibble of each byte and look up in S_BOX
     for byte in state.iter_mut() {
         let low_nibble = *byte & 0xf;
@@ -75,7 +95,7 @@ fn sub_bytes(state: &mut [u8; 16]) {
         // we use the high_nibble as a "row" index into S_BOX and the low_nibble as a "column" index
         let new_byte_index = (high_nibble as usize) * 16 + low_nibble as usize; // S_BOX is index from 0
                                                                                 //println!("Index into S_BOX: {}", new_byte_index);
-        let new_byte: u8 = S_BOX[new_byte_index];
+        let new_byte: u8 = s_box[new_byte_index];
         //println!("Subbed byte is: {:#02x}", new_byte);
 
         *byte = new_byte;
@@ -95,19 +115,6 @@ fn shift_bytes(bytes: &mut [u8; 4]) {
 
 // shift each row in state left by n positions depending on row number
 // i.e. shift 0th row by 0, 1st row by 1, 2nd row by 2 and 3rd row by 3
-fn shift_rows(state: &mut [u8; 16]) -> [u8; 16] {
-    let mut shifted_state = [0u8; 16];
-    for (i, row) in state.chunks(4).enumerate() {
-        let row_len = row.len();
-        for (j, item) in row.iter().enumerate() {
-            let shifted_j = (j + row_len - i) % row_len;
-            shifted_state[i * 4 + shifted_j as usize] = *item;
-            //println!("Shift {} by: {} to the left", j, i);
-            //println!("shifted_j: {}", shifted_j);
-        }
-    }
-    shifted_state
-}
 
 // get a specific column from a 4x4 matrix, indexed by column_index
 fn get_column(column_index: usize, matrix: &[u8]) -> [u8; 4] {
@@ -149,27 +156,6 @@ fn mult_by_x(mut a: u8, mut b: u8) -> u8 {
     }
 
     p
-
-    /*
-    println!("Value to multiply is: {} :: {:8b}", x, val);
-
-    let mut result = val;
-    // we need to determine if the left-most bit is 1 or not
-    // e.g. 01001101 - false
-    //      10010110 - true
-    // if it is we xor with 0b00011011
-    if x == 2 {
-        val <<= 1;
-        if (val & 0x80) != 0 {
-            //println!("Left most bit is 1");
-            result = val ^ 0b1;
-        }
-    } else if x == 3 {
-        result = mult_by_x(2, val) ^ val;
-    }
-
-    result
-    */
 }
 
 // mix_columns is a transformation that operates on the state matrix column-wise
@@ -178,16 +164,20 @@ fn mult_by_x(mut a: u8, mut b: u8) -> u8 {
 //  01 02 03 01   s1
 //  01 01 02 03   s2
 //  03 01 01 02]  s3]
-const MIX_COLS_MATRIX: [u8; 16] = [2, 3, 1, 1, 1, 2, 3, 1, 1, 1, 2, 3, 3, 1, 1, 2];
+const MIX_COLS_MATRIX: [u8; 16] = [
+    0x2, 0x3, 0x1, 0x1, 0x1, 0x2, 0x3, 0x1, 0x1, 0x1, 0x2, 0x3, 0x3, 0x1, 0x1, 0x2,
+];
 
-fn mix_columns(state: &mut [u8; 16]) -> [u8; 16] {
-    let mut new_state = [0u8; 16];
+const INV_MIX_COLS_MATRIX: [u8; 16] = [
+    0xe, 0xb, 0xd, 0x9, 0x9, 0xe, 0xb, 0xd, 0xd, 0x9, 0xe, 0xb, 0xb, 0xd, 0x9, 0xe,
+];
 
-    // get each column in the existing state matrix
+fn mix_columns(state: &mut [u8; 16], matrix: &[u8; 16]) -> [u8; 16] {
+    let mut new_state = [0u8; 16]; // get each column in the existing state matrix
     for column_index in 0..4 {
         let column = get_column(column_index, state);
-        // matrix multiplication of 4x4 MIX_COLS_MATRIX by vector "column"
-        for (i, m_row) in MIX_COLS_MATRIX.chunks(4).enumerate() {
+        // matrix multip_COLS_MATRIX by vector "column"
+        for (i, m_row) in matrix.chunks(4).enumerate() {
             for (j, m) in m_row.iter().enumerate() {
                 // XOR the items together for this item in the state matrix
                 new_state[column_index + i * 4] ^= mult_by_x(*m, column[j]);
@@ -237,15 +227,15 @@ pub fn cipher(input: &[u8], key_schedule: &[u32]) -> [u8; 16] {
         //println!("Start of round: {}", round);
         //print_state(&state);
 
-        sub_bytes(&mut state);
+        sub_bytes(&mut state, &S_BOX);
         //println!("After sub_bytes()");
         //print_state(&state);
 
-        state = shift_rows(&mut state);
+        state = shift_rows(&mut state, ShiftDirection::Left);
         //println!("After shift_rows()");
         //print_state(&state);
 
-        state = mix_columns(&mut state);
+        state = mix_columns(&mut state, &MIX_COLS_MATRIX);
         //println!("After mix_columns()");
         //print_state(&state);
 
@@ -253,11 +243,11 @@ pub fn cipher(input: &[u8], key_schedule: &[u32]) -> [u8; 16] {
         add_round_key(&mut state, &key_schedule[round * 4..(round + 1) * 4]);
     }
     //println!("Last round (without mix_columns)");
-    sub_bytes(&mut state);
+    sub_bytes(&mut state, &S_BOX);
     //println!("After sub_bytes()");
     //print_state(&state);
 
-    state = shift_rows(&mut state);
+    state = shift_rows(&mut state, ShiftDirection::Left);
     //println!("After shift_rows()");
     //print_state(&state);
 
@@ -270,6 +260,86 @@ pub fn cipher(input: &[u8], key_schedule: &[u32]) -> [u8; 16] {
     //print_state(&state);
     state = transpose_state(&state);
     state
+}
+
+pub fn inverse_cipher(input: &[u8], key_schedule: &[u32]) -> [u8; 16] {
+    println!("Length of input: {}", input.len());
+
+    let mut state = transpose_state(input);
+    println!("Length of output: {}", state.len());
+    println!("Length of key_schedule: {}", key_schedule.len());
+
+    assert_eq!(input.len(), 16);
+    assert_eq!(state.len(), 16);
+    assert_eq!(key_schedule.len(), 44); // Nr + 1
+
+    println!("Input");
+    print_state(&state);
+    add_round_key(
+        &mut state,
+        &key_schedule[Rounds::Ten as usize * 4..(Rounds::Ten as usize + 1) * 4],
+    );
+
+    for round in (1..Rounds::Ten as usize).rev() {
+        println!("Start of round: {}", round);
+        print_state(&state);
+
+        state = shift_rows(&mut state, ShiftDirection::Right);
+        println!("After shift_rows()");
+        print_state(&state);
+
+        sub_bytes(&mut state, &INV_S_BOX);
+        println!("After sub_bytes()");
+        print_state(&state);
+
+        println!("Range for key schedule: {}, {}", round * 4, (round + 1) * 4);
+        add_round_key(&mut state, &key_schedule[round * 4..(round + 1) * 4]);
+
+        state = mix_columns(&mut state, &INV_MIX_COLS_MATRIX);
+        println!("After mix_columns()");
+        print_state(&state);
+    }
+    println!("Last round (without mix_columns)");
+    state = shift_rows(&mut state, ShiftDirection::Right);
+    println!("After shift_rows()");
+    print_state(&state);
+
+    sub_bytes(&mut state, &INV_S_BOX);
+    println!("After sub_bytes()");
+    print_state(&state);
+
+    add_round_key(&mut state, &key_schedule[0..4]);
+
+    println!("Output");
+    print_state(&state);
+    state = transpose_state(&state);
+    state
+}
+
+enum ShiftDirection {
+    Left,
+    Right,
+}
+
+fn shift_rows(state: &mut [u8; 16], dir: ShiftDirection) -> [u8; 16] {
+    let mut shifted_state = [0u8; 16];
+
+    for (i, row) in state.chunks(4).enumerate() {
+        let row_len = row.len();
+        for (j, item) in row.iter().enumerate() {
+            match dir {
+                ShiftDirection::Left => {
+                    let shifted_j = (j + row_len - i) % row_len;
+                    shifted_state[i * 4 + shifted_j as usize] = *item;
+                }
+                ShiftDirection::Right => {
+                    let shifted_j = (j + row_len + i) % row_len;
+                    shifted_state[i * 4 + shifted_j as usize] = *item;
+                }
+            }
+        }
+    }
+    shifted_state
 }
 
 // As per FIPS 197 specification, the key schedule generates a total of
@@ -385,14 +455,6 @@ fn as_u8_array(field: u32, array: &mut [u8; 4]) {
     array[1] = ((field >> 16) & 0xff) as u8;
     array[0] = ((field >> 24) & 0xff) as u8;
 }
-
-fn inverse_cipher() {}
-
-fn inv_shift_rows() {}
-
-fn inv_sub_bytes() {}
-
-fn inv_mix_columns() {}
 
 #[cfg(test)]
 mod tests {
@@ -536,6 +598,49 @@ mod tests {
 
         // run cipher
         let output: [u8; 16] = cipher(&plaintext, expanded_key);
+
+        println!("Testing: {:#02x?}", output);
+        println!("against: {:#02x?}", output_correct);
+        assert_eq!(output.len(), output_correct.len());
+
+        for (i, elem) in output.iter().enumerate() {
+            println!("Testing elem: {}, {:#02x?}", i, elem);
+            assert_eq!(*elem, output_correct[i]);
+        }
+    }
+
+    #[test]
+    fn test_inverse_shift_rows() {
+        let mut state = [0u8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+        let state_correct = [0u8, 1, 2, 3, 7, 4, 5, 6, 10, 11, 8, 9, 13, 14, 15, 12];
+
+        let shifted_state = shift_rows(&mut state, ShiftDirection::Right);
+        for (i, &item) in state_correct.iter().enumerate() {
+            assert_eq!(item, shifted_state[i]);
+        }
+    }
+
+    #[test]
+    fn test_inverse_cipher() {
+        println!("Output from test_expand_key()");
+        let cipher_text: [u8; 16] = [
+            0x69, 0xc4, 0xe0, 0xd8, 0x6a, 0x7b, 0x04, 0x30, 0xd8, 0xcd, 0xb7, 0x80, 0x70, 0xb4,
+            0xc5, 0x5a,
+        ];
+        let key: [u8; 16] = [
+            0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d,
+            0x0e, 0x0f,
+        ];
+        let output_correct: [u8; 16] = [
+            0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd,
+            0xee, 0xff,
+        ];
+
+        let expanded_key = &mut [0u32; 44];
+        expand_key(&key, expanded_key, KeyLength::OneTwentyEight);
+
+        // run inverse cipher
+        let output: [u8; 16] = inverse_cipher(&cipher_text, expanded_key);
 
         println!("Testing: {:#02x?}", output);
         println!("against: {:#02x?}", output_correct);
