@@ -1,5 +1,5 @@
 [package]
-name = "aes-crypt"
+name = "aes_crypt"
 version = "0.1.0"
 authors = ["Adrian White <snarkyboojum@gmail.com>"]
 edition = "2018"
