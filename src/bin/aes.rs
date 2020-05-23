@@ -25,12 +25,16 @@ fn main() {
     let mut key_schedule = [0u32; 4 * (Rounds::Ten as usize + 1)];
     expand_key(&key_bytes, &mut key_schedule, key_length);
 
+    // #[cfg(feature = "aes-ni")]
+    if cfg!(feature = "aes-ni") {
+        println!("Going to try and use AES native instructions")
+    }
+
     for (_i, block) in file_bytes.chunks(BLOCK_SIZE).enumerate() {
         //println!("Processing block: {}", i);
 
-        // TODO: pad or do something else for partial blocks?
         if block.len() < 16 {
-            println!("Processing partial block.. not implemented yet :)");
+            println!("Found partial block. Partial blocks aren't implemented. Use a cipher mode like AES-GCM.");
             break;
         } else {
             // run the cipher block-wise
